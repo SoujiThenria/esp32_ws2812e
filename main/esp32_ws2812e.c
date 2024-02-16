@@ -45,7 +45,7 @@ typedef struct led_color {
 static led_strip_handle_t led_strip;
 static led_color led[LED_NUM];
 static volatile bool led_power_status;
-static volatile bool dt = false;
+static volatile bool dt,clk = false;
 gpio_num_t pins[][2] = {
     { PIN_R_CLK, PIN_R_DT },
     { PIN_G_CLK, PIN_G_DT },
@@ -164,7 +164,7 @@ void rotary_colour(void *_arg)
     led_update();
 
     vTaskDelay(80 / portTICK_PERIOD_MS);
-    dt = false;
+    dt = clk = false;
     ESP_ERROR_CHECK(gpio_intr_enable(v));
     ESP_ERROR_CHECK(gpio_intr_enable(vv));
     vTaskDelete(NULL);
@@ -177,23 +177,28 @@ void rotary_interrupt(void *_arg)
     ESP_ERROR_CHECK(gpio_intr_disable(p));
     switch (p) {
         case PIN_R_CLK:
+            clk = true;
             ESP_ERROR_CHECK(gpio_intr_disable(PIN_R_DT));
             xTaskCreate(rotary_colour, "rotary_colour", 4096, _arg, 5, NULL);
             break;
         case PIN_G_CLK:
+            clk = true;
             ESP_ERROR_CHECK(gpio_intr_disable(PIN_G_DT));
             xTaskCreate(rotary_colour, "rotary_colour", 4096, _arg, 5, NULL);
             break;
         case PIN_B_CLK:
+            clk = true;
             ESP_ERROR_CHECK(gpio_intr_disable(PIN_B_DT));
             xTaskCreate(rotary_colour, "rotary_colour", 4096, _arg, 5, NULL);
             break;
         case PIN_BRIGHTNESS_CLK:
+            clk = true;
             ESP_ERROR_CHECK(gpio_intr_disable(PIN_BRIGHTNESS_DT));
             xTaskCreate(rotary_colour, "rotary_colour", 4096, _arg, 5, NULL);
             break;
         default:
-            dt = true;
+            if (!clk)
+                dt = true;
             break;
     }
 }
